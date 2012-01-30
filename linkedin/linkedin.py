@@ -285,29 +285,69 @@ class LinkedIn(object):
 
         return result
 
-    def get_search(self, parameters):
+    def get_search(self, parameters, fields=[]):
         """
-        Use the Search API to find LinkedIn profiles using keywords,
+        Use the People Search API to find LinkedIn profiles using keywords,
         company, name, or other methods. This returns search results,
-        which are an array of matching member profiles. Each matching
-        profile is similar to a mini-profile popup view of LinkedIn
-        member profiles.
+        which are an array of matching member profiles.
+        
+        You can specify the fields you want to see using the field list (:people...)
 
         Request URL Structure:
-        http://api.linkedin.com/v1/people?keywords=['+' delimited keywords]&name=[first name + last name]&company=[company name]&current-company=[true|false]&title=[title]&current-title=[true|false]&industry-code=[industry code]&search-location-type=[I,Y]&country-code=[country code]&postal-code=[postal code]&network=[in|out]&start=[number]&count=[1-10]&sort-criteria=[ctx|endorsers|distance|relevance]
-        """
-        self._check_tokens()
-
-        response = self._do_normal_query("/v1/people", method="GET", params=parameters)
+        http://api.linkedin.com/v1/people-search[:(people:(id,first-name,last-name,headline,connections,positions,picture-url,public-profile-url))]?first-name=[first name]&last-name=[last name] ...
         
+        To learn more refer to https://developer.linkedin.com/documents/people-search-api .
+        
+        Note that the search API was deprecated a while ago and replaced by the people-search API. The result structure changes slightly because people-search returns the entire response in a new people-search tag.
+        
+        people-search returns a slightly different structure -- 
+        
+        search returned..
+        
+        <people>
+          <person/>
+          <person/>
+          ...
+          <person/>
+        </people> 
+        
+        but people_search returns
+        <people-search>
+            <people>
+                <person/>
+                <person/>
+                ...
+                <person/>
+            </people>
+        </people_search>
+        
+        So users will have to update their code to reflect this new structure.                 
+        """
+        
+        self._check_tokens()
+        fields = ":(people:(id,first-name,last-name,headline,positions,public-profile-url,picture-url,location:(name)))"
+        response = self._do_normal_query("/v1/people-search" + fields, params=parameters)
+
+        error = self._parse_error(response)
+        if error:
+            self._error = error
+            logging.error("Parsing Error")
+            return None
+
+        # Parse the response and list out all of the Person elements
         document = minidom.parseString(response)
+
         connections = document.getElementsByTagName("person")
         result = []
+
         for connection in connections:
             profile = Profile.create(connection, self._debug)
             if profile is not None:
                 result.append(profile)
         return result
+
+
+
 
     def send_message(self, subject, message, ids = None, send_yourself = False):
         """
