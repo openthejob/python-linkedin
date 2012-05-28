@@ -14,7 +14,9 @@ def get_child(node, tagName):
         return None
 
 def str_to_bool(s):
-    if s.lower() == "true":
+    if s is None:
+        return None
+    elif s.lower() == "true":
         return True
     elif s.lower() == "false":
         return False
