@@ -44,6 +44,12 @@ def parse_connections(connections_node):
 
     return connections_list
 
+def next_to_root(node, nodeName):
+    nodelist = [n for n in node.getElementsByTagName(nodeName) if n.parentNode == node]
+    if nodelist:
+        return nodelist[0]
+    return None
+
 class LinkedInModel:
     
     def __repr__(self):
@@ -292,7 +298,7 @@ class RelationToViewer(LinkedInModel):
         relation = RelationToViewer()
         relation.distance = int(get_child(node, "distance"))
         relation.num_related_connections = int(get_child(node, "num-related-connections"))
-        
+
         connections = node.getElementsByTagName("connections")
         if connections:
             connections = connections[0]
@@ -363,28 +369,25 @@ class Profile(LinkedInModel):
         profile.num_connections_capped = get_child(person, "num-connections-capped")
         profile.public_url = profile._unescape(get_child(person, "public-profile-url"))
 
-        location = person.getElementsByTagName("location")
+        location = next_to_root(person, "location")
         if location:
-            profile.location = Location.create(location[0])
+            profile.location = Location.create(location)
 
-        relation_to_viewer = person.getElementsByTagName("relation-to-viewer")
+        relation_to_viewer = next_to_root(person, "relation-to-viewer")
         if relation_to_viewer:
-            relation_to_viewer = relation_to_viewer[0]
             profile.relation_to_viewer = RelationToViewer.create(relation_to_viewer)
 
         # Create connections
-        connections = person.getElementsByTagName("connections")
+        connections = next_to_root(person, "connections")
         if connections:
-            connections = connections[0]
             if not profile.num_connections and connections.hasAttribute("total"):
                 profile.num_connections = int(connections.attributes["total"].value)
             profile.connections = parse_connections(connections)
 
         # create positions
-        positions = person.getElementsByTagName("positions")
+        positions = next_to_root(person, "positions")
 
         if positions:
-            positions = positions[0]
             positions = positions.getElementsByTagName("position")
             # TODO get the total
             for position in positions:
@@ -392,33 +395,29 @@ class Profile(LinkedInModel):
 
         # TODO Last field working on is - publications
 
-        private_profile = person.getElementsByTagName("site-standard-profile-request")
+        private_profile = next_to_root(person, "site-standard-profile-request")
         if private_profile:
-            private_profile = private_profile[0]
-        profile.private_url = get_child(private_profile, "url")
+            profile.private_url = get_child(private_profile, "url")
 
         # create skills
-        skills = person.getElementsByTagName("skills")
+        skills = next_to_root(person, "skills")
         if skills:
-            skills = skills[0]
             children = skills.getElementsByTagName('skill')
             for child in children:
                 if not child.getElementsByTagName('id'):
                     profile.skills.append(get_child(child, 'name'))
 
         # create languages
-        languages = person.getElementsByTagName("languages")
+        languages = next_to_root(person, "languages")
         if languages:
-            languages = languages[0]
             children = languages.getElementsByTagName('language')
             for child in children:
                 if not child.getElementsByTagName('id'):
                     profile.languages.append(get_child(child, 'name'))
 
         # create educations
-        educations = person.getElementsByTagName("educations")
+        educations = next_to_root(person, "educations")
         if educations:
-            educations = educations[0]
             profile.educations = Education.create(educations)
 
         # For debugging
