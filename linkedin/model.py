@@ -3,9 +3,11 @@ import datetime
 from xml.dom import minidom
 from xml.sax.saxutils import unescape
 
-def get_child(node, tagName):
+def get_child(node, tagPath):
     try:
-        domNode = node.getElementsByTagName(tagName)[0]
+        domNode = node
+        for tagName in tagPath.split('/'):
+            domNode = domNode.getElementsByTagName(tagName)[0]
         childNodes = domNode.childNodes
         if childNodes:
             return childNodes[0].nodeValue
@@ -106,13 +108,15 @@ class Publication(LinkedInModel):
 
 class Company(LinkedInModel):
 
+    COMPANY_FIELDS = ('id', 'name', 'universal-name', 'company-type/name', 'ticker', 'website-url',
+                      'industry', 'status/name', 'logo-url', 'square-logo-url', 'twitter-id',
+                      'employee-count-range/name', 'description', 'founded-year', 'end-year',
+                      'num-followers', 'size', 'type')
+
     def __init__(self):
-        self.id = None
-        self.name = None
-        self.type = None
-        self.size = None
-        self.industry = None
-        self.ticker = None
+        for field in Company.COMPANY_FIELDS:
+            field_name = field[:field.find('/')] if '/' in field else field
+            self.__dict__[field_name.replace('-', '_')] = None
 
     @staticmethod
     def create(node):
@@ -127,12 +131,9 @@ class Company(LinkedInModel):
         </company>
         """
         company = Company()
-        company.id = get_child(node, "id")
-        company.name = get_child(node, "name")
-        company.type = get_child(node, "type")
-        company.size = get_child(node, "size")
-        company.industry = get_child(node, "industry")
-        company.ticker = get_child(node, "ticker")
+        for field in Company.COMPANY_FIELDS:
+            field_name = field[:field.find('/')] if '/' in field else field
+            company.__dict__[field_name.replace('-', '_')] = get_child(node, field)
         return company
 
 class Education(LinkedInModel):

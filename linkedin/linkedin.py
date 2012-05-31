@@ -285,6 +285,35 @@ class LinkedIn(object):
 
         return result
 
+    def get_company(self, company_id = None, company_universal_name = None, fields=()):
+        """
+        Fetches the company profile whose id is the given company_id or universal name is
+        the given company_universal_name. If none of the parameters given, return None
+        @Returns: a Company instance or None if no parameters are given or if the company was not found.
+
+        Example urls:
+        * http://api.linkedin.com/v1/people/~/connections (for current user)
+        * http://api.linkedin.com/v1/people/id=12345/connections (fetch with member_id)
+        * http://api.linkedin.com/v1/people/url=http%3A%2F%2Fwww.linkedin.com%2Fin%2Flbeebe/connections (fetch with public_url)
+        """
+        self._check_tokens()
+
+        raw_url = ""
+        if company_id:
+            raw_url = "/v1/companies/%s" % company_id
+        elif company_universal_name:
+            raw_url = "/v1/companies/universal-name=%s" % company_universal_name
+        else:
+            return None
+        fields = ":(%s)" % ",".join(fields) if len(fields) > 0 else None
+        if fields:
+            raw_url = raw_url + fields
+
+        response = self._do_normal_query(raw_url)
+        document = minidom.parseString(response)
+        company = document.getElementsByTagName("company")[0]
+        return Company.create(company)
+
     def get_search(self, parameters, fields=[]):
         """
         Use the People Search API to find LinkedIn profiles using keywords,
